@@ -180,21 +180,108 @@ public interface Formula {
 ```
 >
 2. **Lambda表达式**
+```
+//jdk1.8之前的字符串排列方法
+List<String> names = Arrays.asList("peter", "anna", "mike", "xenia");
+Collections.sort(names, new Comparator<String>() {
+    @Override
+    public int compare(String a, String b) {
+        return b.compareTo(a);
+    }
+});
+只需要给静态方法 Collections.sort 传入一个List对象以及一个比较器来按指定顺序排列。通常做法都是创建一个匿名的比较器对象然后将其传递给sort方法。
 
+//jdk1.8开始使用lambda表达式
+Collections.sort(names, (String a, String b) -> {
+    return b.compareTo(a);
+});
+
+//还可以写得更短
+Collections.sort(list, (String a, String b) -> a.compareTo(b));  
+
+//甚至还可以省略类型声明
+Collections.sort(names, (a, b) -> b.compareTo(a));
+```
+>
 3. **函数式接口**
-
+(1) 是一个接口
+(2) 只能有一个待实现的方法，可以有default方法。
+你只需要给你的接口添加 @FunctionalInterface 注解，编译器如果发现你标注了这个注解的接口有多于一个抽象方法的时候会报错的。
+```
+@FunctionalInterface
+interface Converter<F, T> {
+    T convert(F from);
+}
+Converter<String, Integer> converter = (from) -> Integer.valueOf(from);
+Integer converted = converter.convert("123");
+System.out.println(converted);    // 123
+需要注意如果@FunctionalInterface如果没有指定，上面的代码也是对的。
+```
+>
 4. **方法引用**
-
+前一节中的代码还可以通过静态方法引用来表示：
+```
+Converter<String, Integer> converter = Integer::valueOf;
+Integer converted = converter.convert("123");
+System.out.println(converted);   // 123
+```
+Java 8 允许你使用 :: 关键字来传递方法或者构造函数引用，上面的代码展示了如何引用一个静态方法，我们也可以引用一个对象的方法：
+```
+converter = something::startsWith;
+String converted = converter.convert("Java");
+System.out.println(converted);    // "J"
+```
+>
 5. **多重注解**
-
+在Java 5中使用注解有一个限制，即相同的注解在同一位置只能声明一次。Java 8引入重复注解，这样相同的注解在同一地方也可以声明多次。重复注解机制本身需要用@Repeatable注解。Java 8在编译器层做了优化，相同注解会以集合的方式保存，因此底层的原理并没有变化。
+>
 6. **扩展注解的支持**
-
+Java 8扩展了注解的上下文，几乎可以为任何东西添加注解，包括局部变量、泛型类、父类与接口的实现，连方法的异常也能添加注解。
+>
 7. **Optional**
+ Java 8引入Optional类来防止空指针异常，Optional类最先是由Google的Guava项目引入的。Optional类实际上是个容器：它可以保存类型T的值，或者保存null。使用Optional类我们就不用显式进行空指针检查了。
+ ```
+ Optional<String> optional = Optional.of("bam");
+optional.isPresent();           // true
+optional.get();                 // "bam"
+optional.orElse("fallback");    // "bam"
 
+optional.ifPresent((s) -> System.out.println(s.charAt(0)));     // "b"
+ ```
+>
 8. **Stream**
+java.util.Stream 表示能应用在一组元素上一次执行的操作序列。Stream 操作分为中间操作或者最终操作两种，最终操作返回一特定类型的计算结果，而中间操作返回Stream本身，这样你就可以将多个操作依次串起来。Stream 的创建需要指定一个数据源，比如 java.util.Collection的子类，List或者Set， Map不支持。Stream的操作可以串行执行或者并行执行。
+```
+//首先创建要使用的数据
+List<String> stringCollection = new ArrayList<>();
+stringCollection.add("ddd2");
+stringCollection.add("aaa2");
 
+//Sort 排序
+stringCollection
+    .stream()
+    .sorted()
+    .filter((s) -> s.startsWith("a"))
+    .forEach(System.out::println);
+
+// "aaa1", "aaa2"
+
+//Map 映射
+stringCollection
+    .stream()
+    .map(String::toUpperCase)
+    .sorted((a, b) -> b.compareTo(a))
+    .forEach(System.out::println);
+// "DDD2", "DDD1", "CCC", "BBB3", "BBB2", "AAA2", "AAA1"
+```
+Java 8扩展了集合类，可以通过 Collection.stream() 或者 Collection.parallelStream() 来创建一个Stream。
+>
 9. **Date/Time API (JSR 310)**
-
+Java 8新的Date-Time API (JSR 310)受Joda-Time的影响，提供了新的java.time包，可以用来替代 java.util.Date和java.util.Calendar。一般会用到Clock、LocaleDate、LocalTime、LocaleDateTime、ZonedDateTime、Duration这些类，对于时间日期的改进还是非常不错的。
+>
 10. **JavaScript引擎Nashorn**
-
+Nashorn允许在JVM上开发运行JavaScript应用，允许Java与JavaScript相互调用。
+>
 11. **Base64**
+在Java 8中，Base64编码成为了Java类库的标准。Base64类同时还提供了对URL、MIME友好的编码器与解码器。
+>
