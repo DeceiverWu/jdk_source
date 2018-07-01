@@ -285,3 +285,147 @@ Nashorn允许在JVM上开发运行JavaScript应用，允许Java与JavaScript相�
 11. **Base64：**
 在Java 8中，Base64编码成为了Java类库的标准。Base64类同时还提供了对URL、MIME友好的编码器与解码器。
 >
+
+**JDK1.9**
+----------
+1. **Java平台模块化系统：**
+该特性使Java9最大的一个特性，Java提供该功能的主要的动机在于，减少内存的开销，JVM启动的时候，至少会有30~60MB的内存加载，主要原因是JVM需要加载rt.jar，不管其中的类是否被classloader加载，第一步整个jar都会被JVM加载到内存当中去，模块化可以根据模块的需要加载程序运行需要的class，那么JVM是如何知道需要加载哪些class的呢。
+* **模块描述器**
+>模块化的 JAR 文件都包含一个额外的模块描述器。在这个模块描述器中, 对其它模块的依赖是通过 “requires” 来表示的。另外, “exports” 语句控制着内部的哪些包是可以被其它模块访问到的。所有不被导出的包默认都封装在模块的里面。如下是一个模块描述器的示例，存在于 “module-info.java” 文件中
+```
+module blog {
+ exports com.pluralsight.blog;
+ 
+ requires cms;
+}
+```
+![module](https://upload-images.jianshu.io/upload_images/8077763-ac7fc8d6816822d2.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/700)
+
+2. **Linking（Java连接器）：**
+>当你使用具有显式依赖关系的模块和模块化的 JDK 时，新的可能性出现了。你的应用程序模块现在将声明其对其他应用程序模块的依赖以及对其所使用的 JDK 模块的依赖。为什么不使用这些信息创建一个最小的运行时环境，其中只包含运行应用程序所需的那些模块呢？ 这可以通过 Java 9 中的新的 jlink 工具实现。你可以创建针对应用程序进行优化的最小运行时映像而不需要使用完全加载 JDK 安装版本。
+
+3. **JShell（交互式Java REPL）：**
+>你可能问：“REPL是什么”?REPL是一种快速运行语句的命令行工具。
+
+>在Java中，如果你想执行一个简单的语句，我们要么创建一个带main方法的类，要么创建一个可以执行的Test类。当你正在启动Java程序的时候，如果你想执行某些语句并且想立刻看见执行结果，上面的做法看起来不是那么有用了。
+
+>Java 9 让Java也可以像脚本语言一样来运行了，主要得益于JShell
+
+>JShell试图去解决这个问题。Java开发者可以利用JShell在没有创建类的情况下直接声明变量，计算表达式，执行语句。JShell也可以从文件中加载语句或者将语句保存到文件中。并且JShell也可以是tab键进行自动补全的特性
+```
+jdk-9\bin>jshell.exe  
+|  Welcome to JShell -- Version 9  
+|  For an introduction type: /help intro  
+jshell> "This is my long string. I want a part of it".substring(8,19);  
+$5 ==> "my long string"
+jshell> int a = 90;
+a ==> 90
+jshell> a
+a ==> 90
+```
+
+4. **集合工厂方法：**
+在Java 9之前，Java只能利用一些实用方法（例如：Collections.unmodifiableCollection(Collection<? extends T> c)）创建一个不可修改视图的集合。例如，我们可以在Java 8中使用一条如下所示的语句，创建一个Collection的不可修改的视图。
+```
+//Java 9之前
+Map<String, String> immutableMap =
+Collections.unmodifiableMap(
+            new HashMap<String, String>() {{
+                put("key1", "Value1");
+                put("key2", "Value2");
+                put("key3", "Value3");
+            }});
+```
+```
+//Java 9
+Map<String, String> immutableMap = Map.of("key1", "Value1", "key2", "Value2"，"key3", "Value3");
+```
+下面是工厂方法的例子：
+```
+// empty immutable collections 不可修改的空集合
+List<String> emptyImmutableList = List.of();
+Set<String> emptyImmutableSet = Set.of();
+Map emptyImmutableMap = Map.of();
+
+// immutable collections 不可修改的集合
+List<String> immutableList = List.of("one", "two");
+Set<String> immutableSet = Set.of("value1", "value2");
+Map<String, String> immutableMap = Map.of("key1", "Value1", "key2", "Value2", "key3", "Value3");
+```
+
+5. **多版本兼容Jar：**
+>我们最后要来着重介绍的这个特性对于库的维护者而言是个特别好的消息。当一个新版本的 Java 出现的时候，你的库用户要花费数年时间才会切换到这个新的版本。这就意味着库得去向后兼容你想要支持的最老的 Java 版本 (许多情况下就是 Java 6 或者 7)。这实际上意味着未来的很长一段时间，你都不能在库中运用 Java 9 所提供的新特性。幸运的是，多版本兼容 JAR 功能能让你创建仅在特定版本的 Java 环境中运行库程序时选择使用的 class 版本：
+```
+multirelease.jar
+├── META-INF
+│   └── versions
+│       └── 9
+│           └── multirelease
+│               └── Helper.class
+├── multirelease
+    ├── Helper.class
+    └── Main.class
+```
+在上述场景中， multirelease.jar 可以在 Java 9 中使用, 不过 Helper 这个类使用的不是顶层的 multirelease.Helper 这个 class, 而是处在“META-INF/versions/9”下面的这个。这是特别为 Java 9 准备的 class 版本，可以运用 Java 9 所提供的特性和库。同时，在早期的 Java 诸版本中使用这个 JAR 也是能运行的，因为较老版本的 Java 只会看到顶层的这个 Helper 类。
+
+6. **私有接口方法：**
+>Java 8 为我们带来了接口的默认方法。 接口现在也可以包含行为，而不仅仅是方法签名。 但是，如果在接口上有几个默认方法，代码几乎相同，会发生什么情况？ 通常，您将重构这些方法，调用一个可复用的私有方法。 但默认方法不能是私有的。 将复用代码创建为一个默认方法不是一个解决方案，因为该辅助方法会成为公共API的一部分。 使用 Java 9，您可以向接口添加私有辅助方法来解决此问题：
+```
+public interface MyInterface {
+ 
+  void normalInterfaceMethod();
+ 
+  default void interfaceMethodWithDefault() { init(); }
+ 
+  default void anotherDefaultMethod() { init(); }
+ 
+  // This method is not part of the public API exposed by MyInterface
+  private void init() { System.out.println("Initializing"); }
+}
+```
+如果您使用默认方法开发 API ，那么私有接口方法可能有助于构建其实现。
+```
+interface InterfaceWithPrivateMethods {  
+       
+    private static String staticPrivate() {  
+        return "static private";  
+    }  
+       
+    private String instancePrivate() {  
+        return "instance private";  
+    }  
+       
+    default void check() {  
+        String result = staticPrivate();  
+        InterfaceWithPrivateMethods pvt = new InterfaceWithPrivateMethods() {  
+            // anonymous class  
+        };  
+        result = pvt.instancePrivate();  
+    }  
+}}
+```
+**该特性完全是为了Java 8中default方法和static方法服务的。**
+
+7. **java.net新内容：**
+>就目前而言，JDK提供的Http访问功能，几乎都需要依赖于HttpURLConnection，但是这个类大家在写代码的时候很少使用，我们一般都会选择Apache的Http Client，此次在Java 9的版本中引入了一个新的package:java.net.http，里面提供了对Http访问很好的支持，不仅支持Http1.1而且还支持HTTP2，以及WebSocket，据说性能可以超过Apache HttpClient，Netty，Jetty
+```
+URI httpURI = new URI("http://www.google.com");  
+HttpRequest request = HttpRequest.create(httpURI).GET();  
+HttpResponse response = request.response();  
+String responseBody = response.body(HttpResponse.asString());
+```
+* **http/2**
+>Java 9 中有新的方式来处理 HTTP 调用。这个迟到的特性用于代替老旧的 **HttpURLConnection** API，并提供对 WebSocket 和 HTTP/2 的支持。注意：新的 HttpClient API 在 Java 9 中以所谓的孵化器模块交付。也就是说，这套 API 不能保证 100% 完成。不过你可以在 Java 9 中开始使用这套 API：
+```
+HttpClient client = HttpClient.newHttpClient();
+ 
+HttpRequest req =
+   HttpRequest.newBuilder(URI.create("http://www.google.com"))
+              .header("User-Agent","Java")
+              .GET()
+              .build();
+ 
+ 
+HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandler.asString());
+```
+除了这个简单的请求/响应模型之外，HttpClient 还提供了新的 API 来处理 HTTP/2 的特性，比如流和服务端推送。
