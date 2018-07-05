@@ -429,3 +429,75 @@ HttpRequest req =
 HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandler.asString());
 ```
 除了这个简单的请求/响应模型之外，HttpClient 还提供了新的 API 来处理 HTTP/2 的特性，比如流和服务端推送。
+
+8. **核心库新内容：**
+* **轻量级的json文本处理api**
+* **多线程新内容**
+>新增ProcessHandle类，该类提供进程的本地进程ID、参数、命令、启动时间、累计CPU时间、用户、父进程和子进程。这个类还可以监控进程的活力和破坏进程。ProcessHandle。onExit方法，当进程退出时，复杂未来类的异步机制可以执行一个操作。
+
+>包括一个可互操作的发布-订阅框架，以及对CompletableFuture API的增强。
+在Java很早的版本中，提供了Process这样的API可以获得进程的一些信息，包括runtime，甚至是用它来执行当前主机的一些命令，但是请大家思考一个问题，你如何获得你当前Java运行程序的PID？很显然通过Process是无法获得的，需要借助于JMX才能得到，但是在这一次的增强中，你将会很轻松的得到这样的信息，我们来看一个简单的例子
+
+```
+ProcessHandle self = ProcessHandle.current();  
+long PID = self.getPid();  
+ProcessHandle.Info procInfo = self.info();  
+    
+Optional<String[]> args = procInfo.arguments();  
+Optional<String> cmd =  procInfo.commandLine();  
+Optional<Instant> startTime = procInfo.startInstant();  
+Optional<Duration> cpuUsage = procInfo.totalCpuDuration();
+```
+已经获取到了JVM的进程，我们该如何将该进程优雅的停掉呢？下面的代码给出了答案
+```
+childProc = ProcessHandle.current().children();  
+childProc.forEach(procHandle -> {  
+    assertTrue("Could not kill process " + procHandle.getPid(), procHandle.destroy());  
+});
+```
+
+* **Publish-Subscribe Framework**
+>在新版的JDK 9 中提供了消息发布订阅的框架，该框架主要是由Flow这个类提供的，他同样会在java.util.concurrent中出现，并且提供了Reactive编程模式。
+
+* **增强的弃用标记**
+>Java 9提供了另外一个看起来很小的特性，那就是增强的弃用标记，能够让开发人员更好地理解代码的影响。以前，我们只能将代码标记为deprecated并在Javadoc中添加一些原因说明的文档，现在@Deprecated新增了两个有用的属性：since和orRemoval。
+
+* **Thread.onSpinWait**
+>Java 9允许我们为JVM提供一些提示信息，便于实现性能的提升。具体来讲，如果你的代码需要在一个循环中等待某个条件发生的话，那么可以使用Thread.onSpinWait让运行时环境了解到这一点。
+
+9. **Try-With-Resources的改变：**
+>我们都知道，Try-With-Resources是从JDK 7 中引入的一项重要特征，只要接口继承了Closable就可以使用Try-With-Resources，减少finally语句块的编写，在Java 9 中会更加的方便这一特征
+```
+MyAutoCloseable mac = new MyAutoCloseable();
+try (mac) {
+   // do some stuff with mac
+}
+
+try (new MyAutoCloseable() { }.finalWrapper.finalCloseable) {
+  // do some stuff with finalCloseable
+}
+```
+10. **Мulti-Resolution Image API：**
+>目标是定义多分辨率图像API，这样开发者就能很容易的操作和展示不同分辨率的图像了。
+这个新的API定义在java.awt.image包中，这个API能给我们带来如下的帮助：
+* 将不同分辨率的图像封装到一张（多分辨率的）图像中，作为它的变体。
+* 获取这个图像的所有变体。
+* 获取特定分辨率的图像变体–表示一张已知分辨率单位为DPI的特定尺寸大小的逻辑图像，并且这张图像是最佳的变体。
+
+>基于当前屏幕分辨率大小和运用的图像转换算法，java.awt.Graphics类可以从接口MultiResolutionImage获取所需的变体。java.awt.image.AbstractMultiResolutionImage类提供了ava.awt.image.AbstractMultiResolutionImage 默认实现。AbstractMultiResolutionImage的基础实现是java.awt.image.BaseMultiResolutionImage。
+
+11. **改进的 Stream API：**
+>长期以来，Stream API 都是 Java 标准库最好的改进之一。通过这套 API 可以在集合上建立用于转换的申明管道。在 Java 9 中它会变得更好。Stream 接口中添加了 4 个新的方法：dropWhile, takeWhile, ofNullable。还有个 iterate 方法的新重载方法，可以让你提供一个 Predicate (判断条件)来指定什么时候结束迭代：
+
+    IntStream.iterate(1, i -> i < 100, i -> i + 1).forEach(System.out::println);
+
+>第二个参数是一个 Lambda，它会在当前 IntStream 中的元素到达 100 的时候返回 true。因此这个简单的示例是向控制台打印 1 到 99。
+
+>除了对 Stream 本身的扩展，Optional 和 Stream 之间的结合也得到了改进。现在可以通过 Optional 的新方法 `stram` 将一个 Optional 对象转换为一个(可能是空的) Stream 对象：
+
+    Stream<Integer> s = Optional.of(1).stream();
+
+>在组合复杂的 Stream 管道时，将 Optional 转换为 Stream 非常有用。
+
+12. **使用G1垃圾回收器作为默认的垃圾回收器：**
+>移除很多已经被过期的GCC回收器（是移除哦，因为在Jdk 8 中只是加了过期的标记）
